@@ -60,16 +60,20 @@ jobs:
         id: create_issue
         uses: actions/github-script@v7
         with:
+          previous_sha: ${{ steps.get_previous_sha.outputs.previous_sha }}
+          package_version: ${{ steps.get_package_version.outputs.package_version }}
           script: |
             const github = require('@actions/github');
             const core = require('@actions/core');
             const { owner, repo } = github.context.repo;
             const commitSha = github.context.sha.substring(0, 8);
+            const previousSha = core.getInput('previous_sha');
+            const packageVersion = core.getInput('package_version');
             const issue = await github.rest.issues.create({
               owner,
               repo,
               title: `Deployment Tracking - ${commitSha}`,
-              body: `Tracking deployment for commit ${github.context.sha}.\n\n- Previous SHA: ${{ steps.get_previous_sha.outputs.previous_sha }}\n- Package version: ${{ steps.get_package_version.outputs.package_version }}\n- Triggered by: ${github.context.actor}`,
+              body: `Tracking deployment for commit ${github.context.sha}.\n\n- Previous SHA: ${previousSha}\n- Package version: ${packageVersion}\n- Triggered by: ${github.context.actor}`,
               labels: ['deployment', 'in-progress']
             });
             core.setOutput('issue_number', issue.data.number);
@@ -78,9 +82,11 @@ jobs:
       - name: Post pre-deployment comment
         uses: actions/github-script@v7
         with:
+          issue_number: ${{ steps.create_issue.outputs.issue_number }}
           script: |
             const github = require('@actions/github');
-            const issueNumber = ${{ steps.create_issue.outputs.issue_number }};
+            const core = require('@actions/core');
+            const issueNumber = core.getInput('issue_number');
             await github.rest.issues.createComment({
               owner: github.context.repo.owner,
               repo: github.context.repo.repo,
@@ -220,14 +226,21 @@ jobs:
       - name: Post rollback plan comment
         uses: actions/github-script@v7
         with:
+          issue_number: ${{ needs.pre-deployment.outputs.issue_number }}
+          previous_sha: ${{ needs.pre-deployment.outputs.previous_sha }}
+          current_sha: ${{ needs.pre-deployment.outputs.current_sha }}
+          package_version: ${{ needs.pre-deployment.outputs.package_version }}
+          artifact_name: rollback-package-${{ github.sha }}
+          checksum: ${{ steps.checksum.outputs.checksum }}
           script: |
             const github = require('@actions/github');
-            const issueNumber = ${{ needs.pre-deployment.outputs.issue_number }};
-            const previousSha = '${{ needs.pre-deployment.outputs.previous_sha }}';
-            const currentSha = '${{ needs.pre-deployment.outputs.current_sha }}';
-            const packageVersion = '${{ needs.pre-deployment.outputs.package_version }}';
-            const artifactName = 'rollback-package-${{ github.sha }}';
-            const checksum = '${{ steps.checksum.outputs.checksum }}';
+            const core = require('@actions/core');
+            const issueNumber = core.getInput('issue_number');
+            const previousSha = core.getInput('previous_sha');
+            const currentSha = core.getInput('current_sha');
+            const packageVersion = core.getInput('package_version');
+            const artifactName = core.getInput('artifact_name');
+            const checksum = core.getInput('checksum');
             
             const body = `
 ### 🔄 Rollback Plan Ready
@@ -276,9 +289,11 @@ jobs:
       - name: Update issue labels
         uses: actions/github-script@v7
         with:
+          issue_number: ${{ needs.pre-deployment.outputs.issue_number }}
           script: |
             const github = require('@actions/github');
-            const issueNumber = ${{ needs.pre-deployment.outputs.issue_number }};
+            const core = require('@actions/core');
+            const issueNumber = core.getInput('issue_number');
             await github.rest.issues.update({
               owner: github.context.repo.owner,
               repo: github.context.repo.repo,
@@ -289,11 +304,15 @@ jobs:
       - name: Post final comment
         uses: actions/github-script@v7
         with:
+          issue_number: ${{ needs.pre-deployment.outputs.issue_number }}
+          artifact_name: rollback-package-${{ github.sha }}
+          checksum: ${{ needs.rollback-preparation.outputs.checksum }}
           script: |
             const github = require('@actions/github');
-            const issueNumber = ${{ needs.pre-deployment.outputs.issue_number }};
-            const artifactName = 'rollback-package-${{ github.sha }}';
-            const checksum = '${{ needs.rollback-preparation.outputs.checksum }}';
+            const core = require('@actions/core');
+            const issueNumber = core.getInput('issue_number');
+            const artifactName = core.getInput('artifact_name');
+            const checksum = core.getInput('checksum');
             
             await github.rest.issues.createComment({
               owner: github.context.repo.owner,
@@ -305,9 +324,11 @@ jobs:
       - name: Close deployment issue
         uses: actions/github-script@v7
         with:
+          issue_number: ${{ needs.pre-deployment.outputs.issue_number }}
           script: |
             const github = require('@actions/github');
-            const issueNumber = ${{ needs.pre-deployment.outputs.issue_number }};
+            const core = require('@actions/core');
+            const issueNumber = core.getInput('issue_number');
             await github.rest.issues.update({
               owner: github.context.repo.owner,
               repo: github.context.repo.repo,
