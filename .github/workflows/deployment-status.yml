@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  issues: write
+  contents: read
+
 jobs:
   pre-deployment:
     name: pre-deployment
@@ -88,6 +92,8 @@ jobs:
     name: rollback-preparation
     runs-on: ubuntu-latest
     needs: pre-deployment
+    outputs:
+      checksum: ${{ steps.checksum.outputs.checksum }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -241,10 +247,12 @@ jobs:
 #### Quick Rollback Command:
 \`\`\`bash
 # Download artifact and extract
-curl -L -o ${artifactName}.tar.gz "https://github.com/${github.context.repo.owner}/${github.context.repo.repo}/suites/actions/runs/${{ github.run_id }}/artifacts"
-tar -xzf ${artifactName}.tar.gz
-cd rollback-artifacts
-./rollback.sh ${previousSha}
+# The artifact is available in the workflow run's artifacts tab.
+# Use the GitHub CLI to download:
+# gh run download ${{ github.run_id }} -n ${artifactName}
+# tar -xzf ${artifactName}.tar.gz
+# cd rollback-artifacts
+# ./rollback.sh ${previousSha}
 \`\`\`
 
 #### Verification Status:
