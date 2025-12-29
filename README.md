@@ -102,7 +102,7 @@ npm run health-check    # Check application health
 curl http://localhost:3000/health  # Direct health check
 ```
 
-## 📁 Project Structure
+## 🗂️ Project Structure
 
 ```
 mcpmark-cicd/
@@ -167,7 +167,7 @@ npm ci                     # Clean install dependencies
 npm run test:coverage      # Verify test coverage
 ```
 
-## 🔍 Monitoring & Observability
+## 🔬 Monitoring & Observability
 
 - Health check endpoint: `http://localhost:3000/health`
 - Deployment status: `http://localhost:3000/status/deployment`
@@ -226,3 +226,4 @@ MIT License - See LICENSE file for details.
 ---
 
 **Modern Node.js** | **Fast & Lightweight** | **Production Ready**
+
